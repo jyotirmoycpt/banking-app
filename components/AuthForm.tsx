@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { z } from "zod";
@@ -9,19 +9,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 
-import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import CustomInput from "@/components/CustomInput";
+import { Form } from "@/components/ui/form";
 import { authFormSchema } from "@/lib/utils";
-import { getLoggedInUser, signIn, signUp } from "@/lib/actions/user.actions";
+import { signIn, signUp } from "@/lib/actions/user.actions";
 
-const AuthForm = ({ type }: AuthFormProps) => {
+import CustomInput from "./CustomInput";
+import PlaidLink from "./PlaidLink";
+
+const AuthForm = ({ type }: { type: string }) => {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const formSchema = authFormSchema(type);
 
+  // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -30,12 +33,11 @@ const AuthForm = ({ type }: AuthFormProps) => {
     },
   });
 
+  // 2. Define a submit handler.
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsLoading(true);
 
     try {
-      // Sign up with Appwrite and create plaid token
-
       if (type === "sign-up") {
         const userData = {
           firstName: data.firstName!,
@@ -49,22 +51,32 @@ const AuthForm = ({ type }: AuthFormProps) => {
           email: data.email,
           password: data.password,
         };
+
         const newUser = await signUp(userData);
+
+        if (!newUser) {
+          throw new Error("Failed to create user");
+        }
+
         setUser(newUser);
       }
+
       if (type === "sign-in") {
         const response = await signIn({
           email: data.email,
           password: data.password,
         });
+
         if (response) router.push("/");
       }
     } catch (error) {
-      console.error("Error during form submission:", error);
+      console.error("Form submission error:", error);
+      // Optionally add error handling UI here
     } finally {
       setIsLoading(false);
     }
   };
+
   return (
     <section className="auth-form">
       <header className="flex flex-col gap-5 md:gap-8">
@@ -85,16 +97,16 @@ const AuthForm = ({ type }: AuthFormProps) => {
             {user ? "Link Account" : type === "sign-in" ? "Sign In" : "Sign Up"}
             <p className="text-16 font-normal text-gray-600">
               {user
-                ? "Link your account to continue"
-                : type === "sign-in"
-                ? "Sign in to your account"
-                : "Create a new account"}
+                ? "Link your account to get started"
+                : "Please enter your details"}
             </p>
           </h1>
         </div>
       </header>
       {user ? (
-        <div className="flex flex-col gap-4">{/* PlaidLink */}</div>
+        <div className="flex flex-col gap-4">
+          <PlaidLink user={user} variant="primary" />
+        </div>
       ) : (
         <>
           <Form {...form}>
@@ -157,24 +169,27 @@ const AuthForm = ({ type }: AuthFormProps) => {
                   </div>
                 </>
               )}
+
               <CustomInput
+                control={form.control}
                 name="email"
-                placeholder="Enter your email"
-                control={form.control}
                 label="Email"
+                placeholder="Enter your email"
               />
+
               <CustomInput
-                name="password"
-                placeholder="Enter your password"
                 control={form.control}
+                name="password"
                 label="Password"
+                placeholder="Enter your password"
               />
+
               <div className="flex flex-col gap-4">
-                <Button type="submit" className="form-btn" disabled={isLoading}>
+                <Button type="submit" disabled={isLoading} className="form-btn">
                   {isLoading ? (
                     <>
-                      <Loader2 size={20} className="animate-spin" />
-                      &nbsp;Loading...
+                      <Loader2 size={20} className="animate-spin" /> &nbsp;
+                      Loading...
                     </>
                   ) : type === "sign-in" ? (
                     "Sign In"
