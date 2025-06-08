@@ -1,9 +1,8 @@
+import { formatAmount } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-
-import { formatAmount } from "@/lib/utils";
-
-import Copy from "./Copy";
+import React from "react";
+// import Copy from "./Copy";
 
 const BankCard = ({
   account,
